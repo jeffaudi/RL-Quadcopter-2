@@ -32,19 +32,24 @@ class Actor:
         # Add hidden layers
         net = layers.Dense(units=128, use_bias='False')(states) #, kernel_regularizer=regularizers.l2(0.01))(states)
         net = layers.BatchNormalization()(net)
-        net = layers.Activation('relu')(net)
-        net = layers.Dense(units=256, use_bias='False')(net) #, kernel_regularizer=regularizers.l2(0.01))(net)
+        #net = layers.LeakyReLU(alpha=0.2)(net)
+        net = layers.Activation('sigmoid')(net)
+        net = layers.Dense(units=256, use_bias='False')(net)
         net = layers.BatchNormalization()(net)
-        net = layers.Activation('relu')(net)
-        #net = layers.Dense(units=256, use_bias='False')(net) #, kernel_regularizer=regularizers.l2(0.01))(net)
+        #net = layers.LeakyReLU(alpha=0.2)(net)
+        net = layers.Activation('sigmoid')(net)
+        #net = layers.Dense(units=256, use_bias='False')(net)
         #net = layers.BatchNormalization()(net)
         #net = layers.Activation('relu')(net)
 
         # Try different layer sizes, activations, add batch normalization, regularizers, etc.
 
         # Add final output layer with sigmoid activation
-        raw_actions = layers.Dense(units=self.action_size, use_bias='True', 
-            activation='sigmoid', name='raw_actions')(net)
+        #raw_actions = layers.Dense(units=self.action_size, use_bias='True', 
+        #    activation='sigmoid', name='raw_actions')(net)
+        net = layers.Dense(units=self.action_size, use_bias='False')(net)
+        net = layers.BatchNormalization()(net)
+        raw_actions = layers.Activation('sigmoid')(net)
 
         # Scale [0, 1] output for each action dimension to proper range
         actions = layers.Lambda(lambda x: x * self.action_range + self.action_low,
@@ -61,7 +66,7 @@ class Actor:
         #optimizer = optimizers.RMSprop(lr=0.001) # Root Mean Square Propagation
 
         # Define optimizer and training function
-        optimizer = optimizers.Adam(lr=0.01)
+        optimizer = optimizers.Adam(lr=0.001)
         updates_op = optimizer.get_updates(params=self.model.trainable_weights, loss=loss)
         self.train_fn = K.function(
             inputs=[self.model.input, action_gradients, K.learning_phase()],
@@ -96,24 +101,29 @@ class Critic:
         # Add hidden layer(s) for state pathway
         net_states = layers.Dense(units=128, use_bias='False')(states) #, kernel_regularizer=regularizers.l2(0.01))(states)
         #net_states = layers.BatchNormalization()(net_states)
-        net_states = layers.Activation('relu')(net_states)
+        #net_states = layers.LeakyReLU(alpha=0.2)(net_states)
+        net_states = layers.Activation('sigmoid')(net_states)
         net_states = layers.Dense(units=256, use_bias='False')(net_states)
         #net_states = layers.BatchNormalization()(net_states)
-        net_states = layers.Activation('relu')(net_states)
+        #net_states = layers.LeakyReLU(alpha=0.2)(net_states)
+        net_states = layers.Activation('sigmoid')(net_states)
 
         # Add hidden layer(s) for action pathway
         net_actions = layers.Dense(units=128, use_bias='False')(actions)
         #net_actions = layers.BatchNormalization()(net_actions)
-        net_actions = layers.Activation('relu')(net_actions)
+        #net_actions = layers.LeakyReLU(alpha=0.2)(net_actions)
+        net_actions = layers.Activation('sigmoid')(net_actions)
         net_actions = layers.Dense(units=256, use_bias='False')(net_actions)
         #net_actions = layers.BatchNormalization()(net_actions)
-        net_actions = layers.Activation('relu')(net_actions)
+        #net_actions = layers.LeakyReLU(alpha=0.2)(net_actions)
+        net_actions = layers.Activation('sigmoid')(net_actions)
 
         # Try different layer sizes, activations, add batch normalization, regularizers, etc.
 
         # Combine state and action pathways
         net = layers.Add()([net_states, net_actions])
-        net = layers.Activation('relu')(net)
+        #net = layers.LeakyReLU(alpha=0.2)(net)
+        net = layers.Activation('sigmoid')(net)
 
         # Add more layers to the combined network if needed
 
@@ -124,7 +134,7 @@ class Critic:
         self.model = models.Model(inputs=[states, actions], outputs=Q_values)
 
         # Define optimizer and compile model for training with built-in loss function
-        optimizer = optimizers.Adam(lr=0.01)
+        optimizer = optimizers.Adam(lr=0.001)
         #optimizer = optimizers.RMSprop(lr=0.1)
         self.model.compile(optimizer=optimizer, loss='mse')
 
